@@ -177,3 +177,54 @@ class TestImports:
         import inspect
         sig = inspect.signature(convert_raster)
         assert 'quiet' in sig.parameters
+
+
+class TestCLI:
+    """The command line had no tests at all until now.
+
+    plGeoAdaptels, the sibling package, shipped two CLI defects that its
+    changelog records -- a raw traceback where a message belonged, and a
+    zero exit code on failure, which any script checking $? would have
+    missed. Neither is exotic; both are invisible from inside the library.
+    """
+
+    @staticmethod
+    def _raster():
+        import pathlib
+        p = pathlib.Path(__file__).resolve().parent.parent / "test_data" / \
+            "SNP_21_2020_1.tif"
+        if not p.exists():
+            pytest.skip("test_data/SNP_21_2020_1.tif not present")
+        return str(p)
+
+    def test_parser_is_named(self):
+        from geopalette.__main__ import main
+        with pytest.raises(SystemExit):
+            main(["--help"])
+
+    def test_runs_and_writes(self, tmp_path):
+        from geopalette.__main__ import main
+        rc = main(["-i", self._raster(), "-o", str(tmp_path), "-s", "lab"])
+        assert rc == 0
+        assert any(tmp_path.iterdir()), "nothing was written"
+
+    def test_missing_input_returns_one(self, tmp_path):
+        """Not zero, and not a traceback."""
+        from geopalette.__main__ import main
+        rc = main(["-i", str(tmp_path / "nope.tif"), "-o", str(tmp_path),
+                   "-s", "lab"])
+        assert rc == 1
+
+    def test_unknown_space_is_rejected_by_the_parser(self, tmp_path):
+        from geopalette.__main__ import main
+        with pytest.raises(SystemExit):
+            main(["-i", self._raster(), "-o", str(tmp_path), "-s", "nope"])
+
+    def test_single_bands_writes_more(self, tmp_path):
+        from geopalette.__main__ import main
+        multi = tmp_path / "multi"; multi.mkdir()
+        both = tmp_path / "both"; both.mkdir()
+        main(["-i", self._raster(), "-o", str(multi), "-s", "lab"])
+        main(["-i", self._raster(), "-o", str(both), "-s", "lab",
+              "--single-bands"])
+        assert len(list(both.iterdir())) > len(list(multi.iterdir()))
