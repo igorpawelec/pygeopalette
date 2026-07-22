@@ -228,3 +228,61 @@ class TestCLI:
         main(["-i", self._raster(), "-o", str(both), "-s", "lab",
               "--single-bands"])
         assert len(list(both.iterdir())) > len(list(multi.iterdir()))
+
+
+class TestConvertRasterNodata:
+    """The hole must be written as nodata, not converted as if it were black.
+
+    convert_raster() read every band raw, so a source nodata region went
+    through the colour transform like ordinary dark pixels: on
+    SNP_21_2020_1.tif that is 34386 px, 21% of the raster, coming out as
+    L = -6e-08. The output then declared nodata = -9999, which no pixel
+    carried, so nothing downstream could tell the hole from real canopy.
+    It also explains the suspiciously round `L[0.00, ...]` in the range
+    table -- that minimum was the hole, not the image.
+    """
+
+    @staticmethod
+    def _raster():
+        import pathlib
+        p = pathlib.Path(__file__).resolve().parent.parent / "test_data" / \
+            "SNP_21_2020_1.tif"
+        if not p.exists():
+            pytest.skip("test_data/SNP_21_2020_1.tif not present")
+        return str(p)
+
+    def test_nodata_is_stamped_into_the_output(self, tmp_path):
+        rasterio = pytest.importorskip("rasterio")
+        from geopalette.io_utils import convert_raster
+
+        src = self._raster()
+        out = convert_raster(src, str(tmp_path), "lab", quiet=True)
+
+        with rasterio.open(src) as s:
+            hole = (s.read() == 0).all(axis=0)
+        if not hole.any():
+            pytest.skip("this raster has no nodata to test with")
+
+        with rasterio.open(out) as o:
+            data = o.read()
+            assert int((data[0] == o.nodata).sum()) == int(hole.sum()), \
+                "declared nodata does not match the pixels it describes"
+            # And the valid range no longer starts at the hole.
+            assert data[0][~hole].min() > 1.0, \
+                "L still reaches ~0, so the hole is still being converted"
+
+    def test_a_raster_without_nodata_is_untouched(self, tmp_path):
+        rasterio = pytest.importorskip("rasterio")
+        from geopalette.io_utils import convert_raster
+        import numpy as np
+
+        f = tmp_path / "full.tif"
+        data = np.random.default_rng(0).integers(1, 256, (3, 12, 15),
+                                                 dtype=np.uint8)
+        with rasterio.open(f, "w", driver="GTiff", height=12, width=15,
+                           count=3, dtype="uint8") as dst:
+            dst.write(data)
+
+        out = convert_raster(str(f), str(tmp_path), "lab", quiet=True)
+        with rasterio.open(out) as o:
+            assert int((o.read(1) == o.nodata).sum()) == 0

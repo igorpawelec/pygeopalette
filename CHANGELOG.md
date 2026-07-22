@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.5.0] — 2026-07-22
+
+### Fixed
+- **`convert_raster()` converted the nodata region as if it were black, and
+  then declared a nodata value no pixel carried.** Every band was read raw,
+  so a source hole went through the colour transform like ordinary dark
+  pixels. On `SNP_21_2020_1.tif` that is 34,386 px — 21 % of the raster —
+  coming out as `L = -6e-08` and written as valid, while the output header
+  announced `nodata = -9999` that occurred nowhere. Nothing downstream could
+  tell the hole from real canopy.
+
+  It also explains a number that had been sitting in plain sight: the range
+  table reported `L[0.00, 68.62]` for every space, and that zero minimum was
+  the hole rather than the image. With the fix the valid range is
+  `L[7.71, 68.62]`.
+
+  The source mask is now honoured and the declared nodata is stamped into
+  the pixels it describes. A raster without nodata is unaffected.
+
+### Known issues
+- `convert_raster(block_size=...)` does nothing. It appears in the signature
+  and the docstring — "Tile size for block-based processing of large
+  rasters" — and nowhere else; the whole raster is read at once regardless.
+  Left in place rather than removed silently, since dropping a documented
+  parameter is an API decision.
+
+
 ## [0.4.0]
 
 ### Added

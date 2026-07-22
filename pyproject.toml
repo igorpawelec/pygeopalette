@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "geopalette"
-version = "0.4.0"
+version = "0.5.0"
 description = "Color space conversions for geospatial raster data."
 readme = "README.md"
 license = "GPL-3.0-or-later"

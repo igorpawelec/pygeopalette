@@ -79,12 +79,28 @@ def convert_raster(
         G = src.read(2)
         B = src.read(3)
         meta = src.meta.copy()
+        # Where the source says "no data", every band is masked. Without
+        # this the hole is converted as though it were black: on
+        # SNP_21_2020_1.tif that is 34386 pixels, 21% of the raster, coming
+        # out as L = -6e-08 and written as valid. The output then declared
+        # nodata=-9999 that no pixel carried, so a GIS had no way to tell.
+        valid = np.ones(R.shape, dtype=bool)
+        for b in range(1, 4):
+            valid &= src.read_masks(b) != 0
         if not quiet:
             print(f"  Input: {src.height}×{src.width}, {src.count} bands, {src.dtypes[0]}")
 
     t0 = time.time()
     comps, names = convertbands(R, G, B, space)
     dt = time.time() - t0
+
+    # Stamp the declared nodata into the pixels it describes.
+    if not valid.all():
+        comps = tuple(np.where(valid, c, nodata).astype(np.float32)
+                      for c in comps)
+        if not quiet:
+            print(f"  Nodata: {int((~valid).sum())} px "
+                  f"({100 * (~valid).mean():.1f}%) written as {nodata}")
     if not quiet:
         print(f"  Converted: {len(comps)} bands ({names}) in {dt:.3f}s")
 
