@@ -67,12 +67,28 @@ def convert_raster(
     Returns
     -------
     Path
-        Path to the multi-band output (or output dir if only single bands).
+        The multi-band output when ``save_multiband`` is set, otherwise the
+        output directory (single-band files are named after their
+        components, so there is no single path to return).
+
+    Raises
+    ------
+    ValueError
+        If both ``save_multiband`` and ``save_singlebands`` are ``False``:
+        the whole raster would be read and converted and nothing written,
+        which is never intended and used to return a path to a file that
+        was never created.
     """
     _check_rasterio()
     import time
     from contextlib import ExitStack
     from rasterio.windows import Window
+
+    if not save_multiband and not save_singlebands:
+        raise ValueError(
+            "nothing to write: both save_multiband and save_singlebands are "
+            "False. Set at least one."
+        )
 
     input_path = Path(input_path)
     output_dir = Path(output_dir)
@@ -80,12 +96,12 @@ def convert_raster(
     base = input_path.stem
 
     if not quiet:
-        print(f"GeoPalette: {input_path.name} → {space}")
+        print(f"GeoPalette: {input_path.name} -> {space}")
 
     with rasterio.open(input_path) as src:
         meta = src.meta.copy()
         if not quiet:
-            print(f"  Input: {src.height}×{src.width}, {src.count} bands, {src.dtypes[0]}")
+            print(f"  Input: {src.height}x{src.width}, {src.count} bands, {src.dtypes[0]}")
 
         # One pixel through the conversion, only to learn how many bands
         # come out and what they are called. The output files have to be
@@ -161,4 +177,8 @@ def convert_raster(
         if save_singlebands:
             print(f"  Written: {len(names)} single-band files")
 
-    return multi_path
+    # Only the multiband file has a single path; single-band outputs are one
+    # file per component, so the directory is the honest answer there. The
+    # old code returned multi_path unconditionally, i.e. a path to a file it
+    # had not written whenever save_multiband was False.
+    return multi_path if save_multiband else output_dir

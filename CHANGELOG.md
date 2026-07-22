@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.6.2] — 2026-07-22
+
+### Fixed
+- **The CLI was unusable on a Polish (cp1250) console.** The progress
+  messages carried `->` as U+2192 and `x` as U+00D7. The first `print`
+  encoded them with the console codec, cp1250 has neither, and the resulting
+  `UnicodeEncodeError` — a subclass of `ValueError` — was caught by the CLI's
+  `except (OSError, ValueError)` and reported as a cryptic `charmap` "user
+  error" with exit 1, before a single pixel was converted. The existing CLI
+  tests missed it because pytest captures stdout to a UTF-8 buffer, which
+  encodes anything. Messages are ASCII now, and a test drives the CLI through
+  an ASCII-strict stream so the real console path is exercised. A static
+  guard (`test_console_ascii.py`) additionally rejects non-ASCII in any
+  `print`/`raise`/`warn` string across the package.
+- **`convert_raster` returned a path to a file it never wrote.** With
+  `save_multiband=False` it returned the multiband `.tif` path regardless,
+  though that file was not created; the docstring promised the output
+  directory. It now returns the directory in that case. Calling it with both
+  `save_multiband` and `save_singlebands` `False` used to read and convert
+  the whole raster and write nothing; it now raises `ValueError`.
+
+
 ## [0.6.1] — 2026-07-22
 
 ### Fixed

@@ -57,7 +57,7 @@ def main(argv=None):
         print(f"geopalette: error: {e}", file=sys.stderr)
         return 1
 
-    print(f"Done → {out}")
+    print(f"Done -> {out}")
     return 0
 
 

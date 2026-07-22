@@ -229,6 +229,35 @@ class TestCLI:
               "--single-bands"])
         assert len(list(both.iterdir())) > len(list(multi.iterdir()))
 
+    def test_progress_output_survives_a_non_utf8_console(self, tmp_path):
+        """The progress messages must encode on the console they print to.
+
+        They used to carry `->` as U+2192 and `x` as U+00D7. On a cp1250
+        console -- the default on a Polish Windows -- the first print raised
+        UnicodeEncodeError, which subclasses ValueError, so the CLI caught it
+        as a user error and exited 1 having written nothing. The whole CLI
+        was unusable there.
+
+        The existing tests missed it because pytest captures stdout to a
+        UTF-8 buffer, which encodes anything. This forces the strictest
+        realistic console, ascii, so a stray non-ASCII byte fails here
+        instead of on the user's machine.
+        """
+        import io
+        import sys
+        from geopalette.__main__ import main
+
+        buf = io.TextIOWrapper(io.BytesIO(), encoding="ascii", errors="strict")
+        old = sys.stdout
+        sys.stdout = buf
+        try:
+            rc = main(["-i", self._raster(), "-o", str(tmp_path), "-s", "lab"])
+            buf.flush()
+        finally:
+            sys.stdout = old
+        assert rc == 0
+        assert any(tmp_path.iterdir())
+
 
 class TestConvertRasterNodata:
     """The hole must be written as nodata, not converted as if it were black.
@@ -339,6 +368,29 @@ class TestBlockSize:
                     f"{space}: block_size={bs} changed the pixels, "
                     f"max |diff| = {np.nanmax(np.abs(cur[0] - ref[0]))}")
                 assert cur[1:] == ref[1:], f"{space}: block_size={bs} header differs"
+
+    def test_return_path_is_honest_about_what_it_wrote(self, tmp_path):
+        """save_multiband=False must not return a multiband path that was
+        never created -- it did, contradicting the docstring."""
+        rasterio = pytest.importorskip("rasterio")
+        from geopalette.io_utils import convert_raster
+        src = self._scene(tmp_path)
+        out = tmp_path / "s"; out.mkdir()
+        ret = convert_raster(src, out, "lab", save_multiband=False,
+                             save_singlebands=True, quiet=True)
+        assert ret == out, ret
+        # Whatever comes back, a caller must be able to reach the output.
+        assert ret.exists()
+
+    def test_writing_nothing_is_refused(self, tmp_path):
+        """Both flags off used to read and convert the whole raster, write
+        nothing, and return a path to a file it never made."""
+        from geopalette.io_utils import convert_raster
+        src = self._scene(tmp_path)
+        out = tmp_path / "n"; out.mkdir()
+        with pytest.raises(ValueError, match="nothing to write"):
+            convert_raster(src, out, "lab", save_multiband=False,
+                           save_singlebands=False, quiet=True)
 
     def test_the_hole_survives_blocking(self, tmp_path):
         """Guards the test above: with no hole it would prove much less."""

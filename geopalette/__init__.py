@@ -2,7 +2,7 @@
 geopalette — Color space conversions for geospatial raster data.
 """
 
-__version__ = "0.6.1"
+__version__ = "0.6.2"
 __author__ = "Igor Pawelec"
 
 from .conversions import (
