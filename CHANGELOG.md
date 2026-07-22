@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.6.0] — 2026-07-22
+
+### Added
+- **`convert_raster(block_size=...)` now does what it always said it did.**
+  It was a documented public parameter — "Tile size for block-based
+  processing of large rasters" — that appeared in the signature and the
+  docstring and nowhere else; the whole raster was read, converted and held
+  in memory regardless. A scene larger than RAM could not be converted, and
+  the parameter offered to solve exactly that.
+
+  The raster is now read, converted and written one `block_size × block_size`
+  window at a time, straight into the open output files. On
+  `SNP_21_2020_1.tif` → `dlab` (six output bands) peak allocation drops from
+  **14.90 MB to 1.94 MB** at `block_size=128`. `block_size=0` restores the
+  old whole-raster behaviour.
+
+  The result must not depend on it, and that is checked rather than assumed:
+  all 15 spaces, block sizes 0/8/13/4096 — 13 divides neither raster
+  dimension, so the trailing blocks are partial — pixels, nodata, transform,
+  CRS and band count all bit-identical, single-band outputs included. Both
+  the obvious ways to get blocking wrong (writing without the window,
+  computing the mask outside it) were introduced deliberately and the tests
+  failed on each.
+
+
 ## [0.5.0] — 2026-07-22
 
 ### Fixed

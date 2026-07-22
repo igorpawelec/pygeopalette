@@ -286,3 +286,83 @@ class TestConvertRasterNodata:
         out = convert_raster(str(f), str(tmp_path), "lab", quiet=True)
         with rasterio.open(out) as o:
             assert int((o.read(1) == o.nodata).sum()) == 0
+
+
+class TestBlockSize:
+    """block_size must change memory, never the pixels.
+
+    Until 0.6.0 the parameter was documented and did nothing: it was in the
+    signature and the docstring and nowhere else, and the whole raster was
+    read at once. Now that it is real, the thing worth guarding is that it
+    stays invisible in the output -- every conversion is pointwise, so a
+    block boundary must not be detectable in the result.
+    """
+
+    @staticmethod
+    def _scene(d, h=37, w=53):
+        rasterio = pytest.importorskip("rasterio")
+        from rasterio.transform import from_origin
+        import pathlib
+        rng = np.random.default_rng(4)
+        rgb = rng.integers(1, 256, (3, h, w), dtype=np.uint8)
+        # A nodata hole straddling the boundary at block_size=8, so a
+        # per-block mask that was computed for the wrong window would show.
+        rgb[:, 5:12, 5:12] = 0
+        p = pathlib.Path(d) / "scene.tif"
+        with rasterio.open(p, "w", driver="GTiff", height=h, width=w, count=3,
+                           dtype="uint8", nodata=0,
+                           transform=from_origin(0, 0, 1, 1),
+                           crs="EPSG:2180") as f:
+            f.write(rgb)
+        return p
+
+    def test_output_is_independent_of_block_size(self, tmp_path):
+        rasterio = pytest.importorskip("rasterio")
+        from geopalette.io_utils import convert_raster
+        from geopalette.conversions import available_spaces
+        src = self._scene(tmp_path)
+        for space in available_spaces():
+            ref = None
+            # 0 reads the whole raster; 8 and 13 tile it, and 13 divides
+            # neither 37 nor 53, so the last row and column of blocks are
+            # partial. 4096 exceeds the raster, giving a single window.
+            for bs in (0, 8, 13, 4096):
+                out = tmp_path / f"o_{space}_{bs}"
+                out.mkdir()
+                got = convert_raster(src, out, space, block_size=bs, quiet=True)
+                with rasterio.open(got) as f:
+                    cur = (f.read(), f.nodata, f.transform, f.crs, f.count)
+                if ref is None:
+                    ref = cur
+                    continue
+                assert np.array_equal(cur[0], ref[0], equal_nan=True), (
+                    f"{space}: block_size={bs} changed the pixels, "
+                    f"max |diff| = {np.nanmax(np.abs(cur[0] - ref[0]))}")
+                assert cur[1:] == ref[1:], f"{space}: block_size={bs} header differs"
+
+    def test_the_hole_survives_blocking(self, tmp_path):
+        """Guards the test above: with no hole it would prove much less."""
+        rasterio = pytest.importorskip("rasterio")
+        from geopalette.io_utils import convert_raster
+        src = self._scene(tmp_path)
+        out = tmp_path / "o"
+        out.mkdir()
+        got = convert_raster(src, out, "lab", block_size=8, quiet=True)
+        with rasterio.open(got) as f:
+            assert int((f.read(1) == f.nodata).sum()) == 49
+
+    def test_single_bands_are_blocked_too(self, tmp_path):
+        rasterio = pytest.importorskip("rasterio")
+        from geopalette.io_utils import convert_raster
+        src = self._scene(tmp_path)
+        a, b = tmp_path / "a", tmp_path / "b"
+        a.mkdir(); b.mkdir()
+        convert_raster(src, a, "lab", block_size=0,
+                       save_multiband=False, save_singlebands=True, quiet=True)
+        convert_raster(src, b, "lab", block_size=8,
+                       save_multiband=False, save_singlebands=True, quiet=True)
+        names = sorted(p.name for p in a.glob("*.tif"))
+        assert len(names) == 3, names
+        for n in names:
+            with rasterio.open(a / n) as f1, rasterio.open(b / n) as f2:
+                assert np.array_equal(f1.read(), f2.read(), equal_nan=True), n

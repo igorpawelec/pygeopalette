@@ -54,7 +54,13 @@ def convert_raster(
     nodata : float
         NoData value for output rasters.
     block_size : int
-        Tile size for block-based processing of large rasters.
+        Side of the square window the raster is processed in, in pixels.
+        Peak memory is roughly ``block_size**2 * n_out_bands * 4`` bytes
+        rather than the whole raster, which is what lets a scene larger
+        than RAM be converted at all. The result does not depend on it —
+        every conversion is pointwise, and ``tests/`` checks that the
+        output is bit-identical across block sizes. ``0`` reads the whole
+        raster in one go.
     quiet : bool
         Suppress progress messages.
 
@@ -65,6 +71,8 @@ def convert_raster(
     """
     _check_rasterio()
     import time
+    from contextlib import ExitStack
+    from rasterio.windows import Window
 
     input_path = Path(input_path)
     output_dir = Path(output_dir)
@@ -75,54 +83,82 @@ def convert_raster(
         print(f"GeoPalette: {input_path.name} → {space}")
 
     with rasterio.open(input_path) as src:
-        R = src.read(1)
-        G = src.read(2)
-        B = src.read(3)
         meta = src.meta.copy()
-        # Where the source says "no data", every band is masked. Without
-        # this the hole is converted as though it were black: on
-        # SNP_21_2020_1.tif that is 34386 pixels, 21% of the raster, coming
-        # out as L = -6e-08 and written as valid. The output then declared
-        # nodata=-9999 that no pixel carried, so a GIS had no way to tell.
-        valid = np.ones(R.shape, dtype=bool)
-        for b in range(1, 4):
-            valid &= src.read_masks(b) != 0
         if not quiet:
             print(f"  Input: {src.height}×{src.width}, {src.count} bands, {src.dtypes[0]}")
 
-    t0 = time.time()
-    comps, names = convertbands(R, G, B, space)
-    dt = time.time() - t0
+        # One pixel through the conversion, only to learn how many bands
+        # come out and what they are called. The output files have to be
+        # opened before the first block can be written.
+        probe, names = convertbands(*(np.zeros((1, 1), np.uint8),) * 3, space)
+        n_out = len(probe)
 
-    # Stamp the declared nodata into the pixels it describes.
-    if not valid.all():
-        comps = tuple(np.where(valid, c, nodata).astype(np.float32)
-                      for c in comps)
-        if not quiet:
-            print(f"  Nodata: {int((~valid).sum())} px "
-                  f"({100 * (~valid).mean():.1f}%) written as {nodata}")
-    if not quiet:
-        print(f"  Converted: {len(comps)} bands ({names}) in {dt:.3f}s")
+        if block_size and block_size > 0:
+            windows = [
+                Window(c, r, min(block_size, src.width - c),
+                       min(block_size, src.height - r))
+                for r in range(0, src.height, block_size)
+                for c in range(0, src.width, block_size)
+            ]
+        else:
+            windows = [Window(0, 0, src.width, src.height)]
 
-    # Multi-band output
-    multi_path = output_dir / f"{base}_{space}.tif"
-    if save_multiband:
         meta_out = meta.copy()
-        meta_out.update(count=len(comps), dtype="float32", nodata=nodata)
-        with rasterio.open(multi_path, "w", **meta_out) as dst:
-            dst.write(np.stack(comps).astype(np.float32))
-        if not quiet:
-            print(f"  Written: {multi_path.name}")
-
-    # Single-band outputs
-    if save_singlebands:
+        meta_out.update(count=n_out, dtype="float32", nodata=nodata)
         meta_s = meta.copy()
         meta_s.update(count=1, dtype="float32", nodata=nodata)
-        for comp, name in zip(comps, names):
-            path = output_dir / f"{base}_{name}.tif"
-            with rasterio.open(path, "w", **meta_s) as dst:
-                dst.write(comp.astype(np.float32), 1)
-        if not quiet:
+
+        multi_path = output_dir / f"{base}_{space}.tif"
+        t0 = time.time()
+        n_nodata = 0
+        n_total = src.height * src.width
+
+        with ExitStack() as stack:
+            dst_multi = (stack.enter_context(
+                rasterio.open(multi_path, "w", **meta_out))
+                if save_multiband else None)
+            dst_single = [
+                stack.enter_context(
+                    rasterio.open(output_dir / f"{base}_{n}.tif", "w", **meta_s))
+                for n in names
+            ] if save_singlebands else []
+
+            for win in windows:
+                R = src.read(1, window=win)
+                G = src.read(2, window=win)
+                B = src.read(3, window=win)
+                # Where the source says "no data", every band is masked.
+                # Without this the hole is converted as though it were
+                # black: on SNP_21_2020_1.tif that is 34386 pixels, 21% of
+                # the raster, coming out as L = -6e-08 and written as
+                # valid. The output then declared nodata=-9999 that no
+                # pixel carried, so a GIS had no way to tell.
+                valid = np.ones(R.shape, dtype=bool)
+                for b in range(1, 4):
+                    valid &= src.read_masks(b, window=win) != 0
+
+                comps, _ = convertbands(R, G, B, space)
+                if not valid.all():
+                    n_nodata += int((~valid).sum())
+                    comps = tuple(np.where(valid, c, nodata) for c in comps)
+                comps = [np.asarray(c, dtype=np.float32) for c in comps]
+
+                if dst_multi is not None:
+                    dst_multi.write(np.stack(comps), window=win)
+                for dst, comp in zip(dst_single, comps):
+                    dst.write(comp, 1, window=win)
+
+        dt = time.time() - t0
+
+    if n_nodata and not quiet:
+        print(f"  Nodata: {n_nodata} px "
+              f"({100 * n_nodata / n_total:.1f}%) written as {nodata}")
+    if not quiet:
+        blocks = f", {len(windows)} block(s) of {block_size}" if len(windows) > 1 else ""
+        print(f"  Converted: {n_out} bands ({names}) in {dt:.3f}s{blocks}")
+        if save_multiband:
+            print(f"  Written: {multi_path.name}")
+        if save_singlebands:
             print(f"  Written: {len(names)} single-band files")
 
     return multi_path
