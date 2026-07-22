@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.1] — 2026-07-22
+
+### Fixed
+- **`geopalette.__version__` said 0.4.0 while the package was 0.6.0.** Two
+  releases were cut in between and both missed it: the bump was done by
+  editing the places someone remembered instead of searching for the old
+  number, which is exactly what the release checklist added in the previous
+  commit tells contributors not to do. Anyone importing from a source
+  checkout and quoting `__version__` in a bug report was two releases out.
+
+  `tests/test_version_consistency.py` now ties `__version__`, `pyproject.toml`
+  and `CITATION.cff` together and requires a `CHANGELOG.md` heading for the
+  version being released, so the next mismatch fails before the tag.
+
+
 ## [0.6.0] — 2026-07-22
 
 ### Added
