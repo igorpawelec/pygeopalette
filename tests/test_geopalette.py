@@ -372,9 +372,8 @@ class TestBlockSize:
     def test_return_path_is_honest_about_what_it_wrote(self, tmp_path):
         """save_multiband=False must not return a multiband path that was
         never created -- it did, contradicting the docstring."""
-        rasterio = pytest.importorskip("rasterio")
         from geopalette.io_utils import convert_raster
-        src = self._scene(tmp_path)
+        src = self._scene(tmp_path)  # _scene importorskips rasterio
         out = tmp_path / "s"; out.mkdir()
         ret = convert_raster(src, out, "lab", save_multiband=False,
                              save_singlebands=True, quiet=True)
