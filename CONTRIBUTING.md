@@ -74,6 +74,12 @@ change was meant to do. The matrix is the part that disagrees.
    everywhere, and the curl form needs nothing but a public repo.
 6. Only then tag and push the tag:
    `git tag -a vX.Y.Z -m "..." && git push --tags`
+7. If this release changes what the package produces, bump the pin in
+   [GeoPaletteR](https://github.com/igorpawelec/GeoPaletteR)'s
+   `.github/workflows/R-CMD-check.yaml`, which installs `geopalette` from a tag.
+   Leaving it stale does not break anything visibly — the R twin goes on
+   proving its agreement against the previous release, which is exactly the
+   kind of quiet staleness this checklist exists to prevent.
 
 The order matters. A tag is what people install and what a DOI points at, so
 it should never be the thing that discovers a broken build. If Actions is
