@@ -6,7 +6,7 @@
 
 **Color space conversions for geospatial raster data.**
 
-A pure-NumPy Python package for converting RGB raster bands into 14 color spaces commonly used in remote sensing, image segmentation, and forestry applications. Designed for 2-D arrays (GeoTIFF bands) — fully vectorized, no pixel-level loops.
+A pure-NumPy Python package for converting RGB raster bands into 15 color spaces commonly used in remote sensing, image segmentation, and forestry applications. Designed for 2-D arrays (GeoTIFF bands) — fully vectorized, no pixel-level loops.
 
 ## Background
 
@@ -34,7 +34,8 @@ Key references for the implemented color spaces:
 | **LCH(ab)** | L*, C, H (0–360°) | Cylindrical CIELAB |
 | **LCH(uv)** | L*, C, H (0–360°) | Cylindrical CIELUV |
 | **xyY** | x, y (chromaticity), Y (luminance) | CIE chromaticity |
-| **JCH** | J, C, H (0–360°) | CIECAM02-like |
+| **JCH** | J, C, H (0–360°) | CIECAM02-like (fast stand-in) |
+| **CIECAM02 (cam02)** | J, C, h (0–360°) | Colour appearance model |
 | **YCbCr** | Y (16–235), Cb, Cr (16–240) | Video (BT.601) |
 | **Jzazbz** | Jz, az, bz | HDR perceptual |
 | **JzCzHz** | Jz, Cz, hz (0–360°) | HDR cylindrical |
@@ -136,14 +137,12 @@ geopalette/
 │   ├── __main__.py       # CLI entry point
 │   ├── conversions.py    # All conversion functions
 │   └── io_utils.py       # GeoTIFF read/write helpers
+├── tests/                # Pytest suite
 ├── test_data/            # Sample rasters
 ├── www/                  # Logo & comparison images
-├── geopalette_test.py    # Example usage script
-├── test_conversions.py   # Validation tests
 ├── pyproject.toml
 ├── requirements.txt
 ├── environment.yaml
-├── tests/                # Pytest suite
 ├── CITATION.cff
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
@@ -203,7 +202,7 @@ pip install -e ".[validate]"
 pytest tests/test_reference.py -v
 ```
 
-All 14 spaces match their reference to float32 precision. Where a tolerance
+All 15 spaces match their reference to float32 precision. Where a tolerance
 looks loose it is the module's own float32 storage: the PQ curve inside
 Jzazbz carries an exponent of 134, which turns a float32 input error of
 ~1e-7 into ~1e-5 on the output.
