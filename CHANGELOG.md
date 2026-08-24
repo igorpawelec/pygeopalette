@@ -1,5 +1,15 @@
 # Changelog
 
+
+## [0.7.0] — 2026-08-24
+
+### Changed
+- **Renamed from `GeoPalette`.** The import name is now `pygeopalette`, so this is a
+  breaking change for anything that imported the old one. Nothing else moved:
+  the algorithms, the outputs and the cross-language agreement with the R twin
+  are unchanged.
+
+
 ## [0.6.2] — 2026-07-22
 
 ### Fixed
