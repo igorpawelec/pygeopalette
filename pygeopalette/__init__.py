@@ -1,5 +1,5 @@
 """
-geopalette — Color space conversions for geospatial raster data.
+pygeopalette — Color space conversions for geospatial raster data.
 """
 
 __version__ = "0.6.2"

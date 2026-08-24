@@ -1,14 +1,14 @@
 """
 tests/test_conversions.py
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-Unit tests for geopalette color space conversions.
+Unit tests for pygeopalette color space conversions.
 Uses synthetic 10×10 uint8 arrays — no rasterio needed.
 """
 
 import numpy as np
 import pytest
 
-from geopalette import (
+from pygeopalette import (
     available_spaces,
     convertbands,
     rgb_to_hsl,

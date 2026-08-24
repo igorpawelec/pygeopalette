@@ -1,5 +1,5 @@
 """
-geopalette.conversions
+pygeopalette.conversions
 ~~~~~~~~~~~~~~~~~~~~~~
 RGB ↔ color-space conversion functions for 2-D NumPy arrays (raster bands).
 

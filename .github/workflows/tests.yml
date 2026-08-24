@@ -38,10 +38,10 @@ jobs:
         # package somewhere the tests cannot see, the failure otherwise
         # surfaces later as a bare ModuleNotFoundError from pytest, which
         # says nothing about where it went wrong.
-        run: python -c "import geopalette; print(geopalette.__name__, geopalette.__version__, geopalette.__file__)"
+        run: python -c "import pygeopalette; print(pygeopalette.__name__, pygeopalette.__version__, pygeopalette.__file__)"
 
       - name: Lint
-        run: python -m pyflakes geopalette/ tests/ examples/
+        run: python -m pyflakes pygeopalette/ tests/ examples/
 
       - name: Test
         run: python -m pytest -v

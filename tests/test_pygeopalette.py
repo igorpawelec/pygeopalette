@@ -1,6 +1,6 @@
 """
-pytest suite for GeoPalette.
-Run: pytest tests/test_geopalette.py -v
+pytest suite for pygeopalette.
+Run: pytest tests/test_pygeopalette.py -v
 """
 
 import numpy as np
@@ -39,7 +39,7 @@ def rgb_black():
 class TestForwardConversions:
 
     def test_all_spaces_run(self, rgb_random):
-        from geopalette import convertbands, available_spaces
+        from pygeopalette import convertbands, available_spaces
         R, G, B = rgb_random
         for space in available_spaces():
             comps, names = convertbands(R, G, B, space)
@@ -49,51 +49,51 @@ class TestForwardConversions:
                 assert c.dtype == np.float32
 
     def test_lab_reference_red(self, rgb_red):
-        from geopalette import rgb_to_lab
+        from pygeopalette import rgb_to_lab
         L, a, b = rgb_to_lab(*rgb_red)
         assert abs(L[0, 0] - 53.23) < 1.0
         assert abs(a[0, 0] - 80.11) < 1.0
         assert abs(b[0, 0] - 67.22) < 1.0
 
     def test_lab_white(self, rgb_white):
-        from geopalette import rgb_to_lab
+        from pygeopalette import rgb_to_lab
         L, a, b = rgb_to_lab(*rgb_white)
         assert abs(L[0, 0] - 100.0) < 1.0
         assert abs(a[0, 0]) < 1.0
         assert abs(b[0, 0]) < 1.0
 
     def test_lab_black(self, rgb_black):
-        from geopalette import rgb_to_lab
+        from pygeopalette import rgb_to_lab
         L, a, b = rgb_to_lab(*rgb_black)
         assert abs(L[0, 0]) < 1.0
 
     def test_oklab_reference_red(self, rgb_red):
-        from geopalette import rgb_to_oklab
+        from pygeopalette import rgb_to_oklab
         L, a, b = rgb_to_oklab(*rgb_red)
         assert abs(L[0, 0] - 0.6279) < 0.01
         assert abs(a[0, 0] - 0.2249) < 0.01
 
     def test_hsv_red(self, rgb_red):
-        from geopalette import rgb_to_hsv
+        from pygeopalette import rgb_to_hsv
         H, S, V = rgb_to_hsv(*rgb_red)
         assert abs(H[0, 0]) < 1.0  # H=0
         assert abs(S[0, 0] - 1.0) < 0.01
         assert abs(V[0, 0] - 1.0) < 0.01
 
     def test_ycbcr_reference(self, rgb_red):
-        from geopalette import rgb_to_ycbcr
+        from pygeopalette import rgb_to_ycbcr
         Y, Cb, Cr = rgb_to_ycbcr(*rgb_red)
         assert abs(Y[0, 0] - 81.48) < 0.5
         assert abs(Cr[0, 0] - 240.0) < 0.5
 
     def test_jzazbz_runs(self, rgb_red):
-        from geopalette import rgb_to_jzazbz
+        from pygeopalette import rgb_to_jzazbz
         Jz, az, bz = rgb_to_jzazbz(*rgb_red)
         assert Jz[0, 0] > 0
         assert Jz.dtype == np.float32
 
     def test_invalid_space(self, rgb_random):
-        from geopalette import convertbands
+        from pygeopalette import convertbands
         with pytest.raises(ValueError, match="Unknown space"):
             convertbands(*rgb_random, "nonexistent")
 
@@ -101,7 +101,7 @@ class TestForwardConversions:
 class TestInverseConversions:
 
     def test_lab_roundtrip(self, rgb_random):
-        from geopalette import rgb_to_lab, lab_to_rgb
+        from pygeopalette import rgb_to_lab, lab_to_rgb
         R, G, B = rgb_random
         L, a, b = rgb_to_lab(R, G, B)
         R2, G2, B2 = lab_to_rgb(L, a, b)
@@ -110,7 +110,7 @@ class TestInverseConversions:
         assert corr > 0.99
 
     def test_oklab_roundtrip(self, rgb_random):
-        from geopalette import rgb_to_oklab, oklab_to_rgb
+        from pygeopalette import rgb_to_oklab, oklab_to_rgb
         R, G, B = rgb_random
         L, a, b = rgb_to_oklab(R, G, B)
         R2, G2, B2 = oklab_to_rgb(L, a, b)
@@ -118,7 +118,7 @@ class TestInverseConversions:
         assert corr > 0.99
 
     def test_hsv_roundtrip(self, rgb_random):
-        from geopalette import rgb_to_hsv, hsv_to_rgb
+        from pygeopalette import rgb_to_hsv, hsv_to_rgb
         R, G, B = rgb_random
         H, S, V = rgb_to_hsv(R, G, B)
         R2, G2, B2 = hsv_to_rgb(H, S, V)
@@ -128,7 +128,7 @@ class TestInverseConversions:
         np.testing.assert_allclose(B2, B / 255.0, atol=0.01)
 
     def test_hsl_roundtrip(self, rgb_random):
-        from geopalette import rgb_to_hsl, hsl_to_rgb
+        from pygeopalette import rgb_to_hsl, hsl_to_rgb
         R, G, B = rgb_random
         H, S, L = rgb_to_hsl(R, G, B)
         R2, G2, B2 = hsl_to_rgb(H, S, L)
@@ -137,7 +137,7 @@ class TestInverseConversions:
         np.testing.assert_allclose(B2, B / 255.0, atol=0.01)
 
     def test_lab_red_roundtrip(self, rgb_red):
-        from geopalette import rgb_to_lab, lab_to_rgb
+        from pygeopalette import rgb_to_lab, lab_to_rgb
         L, a, b = rgb_to_lab(*rgb_red)
         R2, G2, B2 = lab_to_rgb(L, a, b)
         assert abs(R2[0, 0] * 255 - 255) < 2.0
@@ -148,12 +148,12 @@ class TestInverseConversions:
 class TestAvailableSpaces:
 
     def test_count(self):
-        from geopalette import available_spaces
+        from pygeopalette import available_spaces
         spaces = available_spaces()
         assert len(spaces) >= 14
 
     def test_jzazbz_included(self):
-        from geopalette import available_spaces
+        from pygeopalette import available_spaces
         assert "jzazbz" in available_spaces()
         assert "jzczhz" in available_spaces()
 
@@ -161,11 +161,11 @@ class TestAvailableSpaces:
 class TestImports:
 
     def test_import(self):
-        import geopalette
-        assert hasattr(geopalette, '__version__')
+        import pygeopalette
+        assert hasattr(pygeopalette, '__version__')
 
     def test_import_inverses(self):
-        from geopalette import lab_to_rgb, oklab_to_rgb, hsv_to_rgb, hsl_to_rgb
+        from pygeopalette import lab_to_rgb, oklab_to_rgb, hsv_to_rgb, hsl_to_rgb
         assert callable(lab_to_rgb)
         assert callable(oklab_to_rgb)
         assert callable(hsv_to_rgb)
@@ -173,7 +173,7 @@ class TestImports:
 
     def test_convert_raster_quiet_param(self):
         """convert_raster accepts quiet parameter."""
-        from geopalette.io_utils import convert_raster
+        from pygeopalette.io_utils import convert_raster
         import inspect
         sig = inspect.signature(convert_raster)
         assert 'quiet' in sig.parameters
@@ -182,7 +182,7 @@ class TestImports:
 class TestCLI:
     """The command line had no tests at all until now.
 
-    plGeoAdaptels, the sibling package, shipped two CLI defects that its
+    pygeoadaptels, the sibling package, shipped two CLI defects that its
     changelog records -- a raw traceback where a message belonged, and a
     zero exit code on failure, which any script checking $? would have
     missed. Neither is exotic; both are invisible from inside the library.
@@ -198,30 +198,30 @@ class TestCLI:
         return str(p)
 
     def test_parser_is_named(self):
-        from geopalette.__main__ import main
+        from pygeopalette.__main__ import main
         with pytest.raises(SystemExit):
             main(["--help"])
 
     def test_runs_and_writes(self, tmp_path):
-        from geopalette.__main__ import main
+        from pygeopalette.__main__ import main
         rc = main(["-i", self._raster(), "-o", str(tmp_path), "-s", "lab"])
         assert rc == 0
         assert any(tmp_path.iterdir()), "nothing was written"
 
     def test_missing_input_returns_one(self, tmp_path):
         """Not zero, and not a traceback."""
-        from geopalette.__main__ import main
+        from pygeopalette.__main__ import main
         rc = main(["-i", str(tmp_path / "nope.tif"), "-o", str(tmp_path),
                    "-s", "lab"])
         assert rc == 1
 
     def test_unknown_space_is_rejected_by_the_parser(self, tmp_path):
-        from geopalette.__main__ import main
+        from pygeopalette.__main__ import main
         with pytest.raises(SystemExit):
             main(["-i", self._raster(), "-o", str(tmp_path), "-s", "nope"])
 
     def test_single_bands_writes_more(self, tmp_path):
-        from geopalette.__main__ import main
+        from pygeopalette.__main__ import main
         multi = tmp_path / "multi"; multi.mkdir()
         both = tmp_path / "both"; both.mkdir()
         main(["-i", self._raster(), "-o", str(multi), "-s", "lab"])
@@ -245,7 +245,7 @@ class TestCLI:
         """
         import io
         import sys
-        from geopalette.__main__ import main
+        from pygeopalette.__main__ import main
 
         buf = io.TextIOWrapper(io.BytesIO(), encoding="ascii", errors="strict")
         old = sys.stdout
@@ -282,7 +282,7 @@ class TestConvertRasterNodata:
 
     def test_nodata_is_stamped_into_the_output(self, tmp_path):
         rasterio = pytest.importorskip("rasterio")
-        from geopalette.io_utils import convert_raster
+        from pygeopalette.io_utils import convert_raster
 
         src = self._raster()
         out = convert_raster(src, str(tmp_path), "lab", quiet=True)
@@ -302,7 +302,7 @@ class TestConvertRasterNodata:
 
     def test_a_raster_without_nodata_is_untouched(self, tmp_path):
         rasterio = pytest.importorskip("rasterio")
-        from geopalette.io_utils import convert_raster
+        from pygeopalette.io_utils import convert_raster
         import numpy as np
 
         f = tmp_path / "full.tif"
@@ -347,8 +347,8 @@ class TestBlockSize:
 
     def test_output_is_independent_of_block_size(self, tmp_path):
         rasterio = pytest.importorskip("rasterio")
-        from geopalette.io_utils import convert_raster
-        from geopalette.conversions import available_spaces
+        from pygeopalette.io_utils import convert_raster
+        from pygeopalette.conversions import available_spaces
         src = self._scene(tmp_path)
         for space in available_spaces():
             ref = None
@@ -372,7 +372,7 @@ class TestBlockSize:
     def test_return_path_is_honest_about_what_it_wrote(self, tmp_path):
         """save_multiband=False must not return a multiband path that was
         never created -- it did, contradicting the docstring."""
-        from geopalette.io_utils import convert_raster
+        from pygeopalette.io_utils import convert_raster
         src = self._scene(tmp_path)  # _scene importorskips rasterio
         out = tmp_path / "s"; out.mkdir()
         ret = convert_raster(src, out, "lab", save_multiband=False,
@@ -384,7 +384,7 @@ class TestBlockSize:
     def test_writing_nothing_is_refused(self, tmp_path):
         """Both flags off used to read and convert the whole raster, write
         nothing, and return a path to a file it never made."""
-        from geopalette.io_utils import convert_raster
+        from pygeopalette.io_utils import convert_raster
         src = self._scene(tmp_path)
         out = tmp_path / "n"; out.mkdir()
         with pytest.raises(ValueError, match="nothing to write"):
@@ -394,7 +394,7 @@ class TestBlockSize:
     def test_the_hole_survives_blocking(self, tmp_path):
         """Guards the test above: with no hole it would prove much less."""
         rasterio = pytest.importorskip("rasterio")
-        from geopalette.io_utils import convert_raster
+        from pygeopalette.io_utils import convert_raster
         src = self._scene(tmp_path)
         out = tmp_path / "o"
         out.mkdir()
@@ -404,7 +404,7 @@ class TestBlockSize:
 
     def test_single_bands_are_blocked_too(self, tmp_path):
         rasterio = pytest.importorskip("rasterio")
-        from geopalette.io_utils import convert_raster
+        from pygeopalette.io_utils import convert_raster
         src = self._scene(tmp_path)
         a, b = tmp_path / "a", tmp_path / "b"
         a.mkdir(); b.mkdir()

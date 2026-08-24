@@ -1,10 +1,10 @@
 """The package claims requires-python >= 3.9. Check that it means it.
 
-Ported from pyHRG, which shipped 0.5.0 with ``max_iters: int | None`` and did
+Ported from pycacumen, which shipped 0.5.0 with ``max_iters: int | None`` and did
 not import at all on 3.9: PEP 604 in an annotation is a runtime expression
 before 3.10. It was invisible there because development runs on 3.12, and CI
-caught it only after the tag. GeoPalette is clean today — this is what keeps
-it clean, and it is not idle: ``geopalette/io_utils.py`` does use ``str | Path``, and is legal only
+caught it only after the tag. pygeopalette is clean today — this is what keeps
+it clean, and it is not idle: ``pygeopalette/io_utils.py`` does use ``str | Path``, and is legal only
 because it carries ``from __future__ import annotations`` on the line after
 its docstring. Move that import down past an assignment and the package
 stops importing everywhere; the second test below is what notices.
@@ -16,7 +16,7 @@ import ast
 import pathlib
 import unittest
 
-PKG = pathlib.Path(__file__).resolve().parent.parent / "geopalette"
+PKG = pathlib.Path(__file__).resolve().parent.parent / "pygeopalette"
 SOURCES = sorted(PKG.rglob("*.py"))
 
 

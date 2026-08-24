@@ -1,5 +1,5 @@
 """
-geopalette.io_utils
+pygeopalette.io_utils
 ~~~~~~~~~~~~~~~~~~~
 Convenience helpers for reading / writing raster bands via rasterio.
 """
@@ -96,7 +96,7 @@ def convert_raster(
     base = input_path.stem
 
     if not quiet:
-        print(f"GeoPalette: {input_path.name} -> {space}")
+        print(f"pygeopalette: {input_path.name} -> {space}")
 
     with rasterio.open(input_path) as src:
         meta = src.meta.copy()

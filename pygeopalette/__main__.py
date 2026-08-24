@@ -1,7 +1,7 @@
 """
-geopalette.__main__
+pygeopalette.__main__
 ~~~~~~~~~~~~~~~~~~~
-Command-line interface:  ``python -m geopalette``
+Command-line interface:  ``python -m pygeopalette``
 """
 
 import argparse
@@ -13,7 +13,7 @@ from .io_utils import convert_raster
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        prog="geopalette",
+        prog="pygeopalette",
         description="Convert RGB rasters to different color spaces.",
     )
     parser.add_argument(
@@ -54,7 +54,7 @@ def main(argv=None):
     except (OSError, ValueError) as e:
         # a missing raster or a bad space is a user mistake, not a crash;
         # a traceback helps nobody here
-        print(f"geopalette: error: {e}", file=sys.stderr)
+        print(f"pygeopalette: error: {e}", file=sys.stderr)
         return 1
 
     print(f"Done -> {out}")

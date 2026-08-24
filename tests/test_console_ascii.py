@@ -1,6 +1,6 @@
 """User-facing messages must encode on the console they print to.
 
-GeoPalette runs on Polish Windows, where the default console encoding is
+pygeopalette runs on Polish Windows, where the default console encoding is
 cp1250, not UTF-8. A string sent to ``print``, ``sys.std*.write``,
 ``warnings.warn``, ``logging`` or ``raise`` is encoded with that codec on
 the way out; a character it cannot represent -- ``->`` written as U+2192,
@@ -16,7 +16,7 @@ argument of a ``raise`` -- non-ASCII in docstrings and comments never reaches
 the console and is fine.
 
 The audit that added this found the bug in three of the four sink kinds
-across the family: the block that reads geopalette.__init__ shows the same style
+across the family: the block that reads pygeopalette.__init__ shows the same style
 elsewhere, so it is worth keeping the whole package honest.
 
 Copyright (C) 2025 Igor Pawelec. Licence: GPLv3.
@@ -26,7 +26,7 @@ import ast
 import pathlib
 import unittest
 
-PKG = pathlib.Path(__file__).resolve().parent.parent / "geopalette"
+PKG = pathlib.Path(__file__).resolve().parent.parent / "pygeopalette"
 SOURCES = sorted(PKG.rglob("*.py"))
 
 # Names that put their string argument on a byte stream encoded with the

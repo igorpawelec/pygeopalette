@@ -25,7 +25,7 @@
 ## [0.6.1] — 2026-07-22
 
 ### Fixed
-- **`geopalette.__version__` said 0.4.0 while the package was 0.6.0.** Two
+- **`pygeopalette.__version__` said 0.4.0 while the package was 0.6.0.** Two
   releases were cut in between and both missed it: the bump was done by
   editing the places someone remembered instead of searching for the old
   number, which is exactly what the release checklist added in the previous
@@ -152,7 +152,7 @@ unchanged. If you only used those, your results stand.
   on J and r≈0.89 on C, but hue can be off by 70°. Its H spans 0-324°, not
   the 0-360° previously documented, because it scales an HSV hue by 0.9.
 - `test_conversions.py` moved to `tests/`, where its own header already said
-  it lived. `geopalette_test.py`, which is an example rather than a test,
+  it lived. `pygeopalette_test.py`, which is an example rather than a test,
   moved to `examples/convert_geotiff.py`.
 - `test_available_spaces_count` asserted a hardcoded 13 against 14 registered
   spaces, so it failed for whoever added the fourteenth. It now checks the
@@ -161,7 +161,7 @@ unchanged. If you only used those, your results stand.
   TOML table form is deprecated and stops working 2027-02-18. Needs
   setuptools >= 77.
 
-- **`python -m geopalette` always exited 0.** `__main__.py` called `main()`
+- **`python -m pygeopalette` always exited 0.** `__main__.py` called `main()`
   without passing its return value to `sys.exit()` — `sys` was imported and
   unused, which was the tell — so a failed conversion reported success and
   any script checking `$?` missed it. It also printed raw tracebacks for a
@@ -172,7 +172,7 @@ unchanged. If you only used those, your results stand.
 ### Added
 - GitHub Actions CI: tests and lint on Linux/macOS/Windows across Python
   3.9-3.12.
-- `pip install geopalette[validate]` pulls the reference implementations.
+- `pip install pygeopalette[validate]` pulls the reference implementations.
 
 ## [0.1.0] — 2025-XX-XX
 
@@ -183,5 +183,5 @@ unchanged. If you only used those, your results stand.
 - 1 inverse conversion: CIELAB → RGB
 - `convertbands()` dispatcher for easy single-call conversion
 - `convert_raster()` I/O utility for GeoTIFF workflows
-- CLI: `python -m geopalette` / `geopalette` command
+- CLI: `python -m pygeopalette` / `pygeopalette` command
 - Test suite with synthetic data

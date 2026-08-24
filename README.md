@@ -1,6 +1,6 @@
-# GeoPalette
+# pygeopalette
 
-<img src="https://raw.githubusercontent.com/igorpawelec/GeoPalette/main/www/geopalette_logo.png" align="right" width="200"/>
+<img src="https://raw.githubusercontent.com/igorpawelec/pygeopalette/main/www/geopalette_logo.png" align="right" width="200"/>
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
@@ -50,10 +50,10 @@ Inverse conversions: **CIELAB → RGB**, **Oklab → RGB**, **HSV → RGB**, **H
 # 1. Install native dependencies via conda
 conda install -c conda-forge numpy rasterio
 
-# 2. Install geopalette
+# 2. Install pygeopalette
 pip install --no-deps .               # from cloned repo
 # or
-pip install --no-deps git+https://github.com/igorpawelec/geopalette.git
+pip install --no-deps git+https://github.com/igorpawelec/pygeopalette.git
 ```
 
 **Minimal (NumPy only, no GeoTIFF I/O):**
@@ -71,7 +71,7 @@ pip install --no-deps .
 
 ```python
 import numpy as np
-from geopalette import convertbands, available_spaces
+from pygeopalette import convertbands, available_spaces
 
 # Check available spaces
 print(available_spaces())
@@ -89,7 +89,7 @@ print(names)  # ['L', 'a', 'b']
 ### With GeoTIFF (rasterio)
 
 ```python
-from geopalette.io_utils import convert_raster
+from pygeopalette.io_utils import convert_raster
 
 convert_raster(
     "ortho_rgb.tif",
@@ -104,26 +104,26 @@ convert_raster(
 ### Command line
 
 ```bash
-geopalette -i ortho_rgb.tif -o results/ -s lab
-geopalette -i ortho_rgb.tif -o results/ -s oklab --single-bands
+pygeopalette -i ortho_rgb.tif -o results/ -s lab
+pygeopalette -i ortho_rgb.tif -o results/ -s oklab --single-bands
 ```
 
 ### As Python module
 
 ```bash
-python -m geopalette -i ortho_rgb.tif -o results/ -s lab
+python -m pygeopalette -i ortho_rgb.tif -o results/ -s lab
 ```
 
 ### Individual functions
 
 ```python
-from geopalette import rgb_to_lab, rgb_to_oklab, rgb_to_jzazbz
-from geopalette import lab_to_rgb, oklab_to_rgb, hsv_to_rgb, hsl_to_rgb
+from pygeopalette import rgb_to_lab, rgb_to_oklab, rgb_to_jzazbz
+from pygeopalette import lab_to_rgb, oklab_to_rgb, hsv_to_rgb, hsl_to_rgb
 
 L, a, b = rgb_to_lab(R, G, B)
 R2, G2, B2 = lab_to_rgb(L, a, b)  # inverse (sRGB [0,1])
 
-from geopalette import rgb_to_hsv
+from pygeopalette import rgb_to_hsv
 H, S, V = rgb_to_hsv(R, G, B)
 R2, G2, B2 = hsv_to_rgb(H, S, V)  # inverse (sRGB [0,1])
 ```
@@ -131,8 +131,8 @@ R2, G2, B2 = hsv_to_rgb(H, S, V)  # inverse (sRGB [0,1])
 ## Repository structure
 
 ```
-geopalette/
-├── geopalette/           # Package source
+pygeopalette/
+├── pygeopalette/           # Package source
 │   ├── __init__.py       # Public API
 │   ├── __main__.py       # CLI entry point
 │   ├── conversions.py    # All conversion functions
@@ -168,7 +168,7 @@ If you use this software in your research, please cite:
 
 1. **This implementation:**
 
-   > Pawelec, I. (2025). GeoPalette — Color space conversions for geospatial raster data [Software]. https://github.com/igorpawelec/geopalette
+   > Pawelec, I. (2025). pygeopalette — Color space conversions for geospatial raster data [Software]. https://github.com/igorpawelec/pygeopalette
 
 2. **For CIELAB/CIELUV conversions:**
 
@@ -216,7 +216,7 @@ Two spaces need a note:
   models an observer, not a fixed function of RGB:
 
   ```python
-  from geopalette import rgb_to_cam02
+  from pygeopalette import rgb_to_cam02
   J, C, h = rgb_to_cam02(R, G, B, L_A=64, Y_b=20, surround="average")
   ```
 

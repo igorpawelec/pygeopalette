@@ -1,4 +1,4 @@
-name: geopalette
+name: pygeopalette
 channels:
   - conda-forge
   - defaults

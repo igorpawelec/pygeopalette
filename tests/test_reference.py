@@ -22,7 +22,7 @@ import pytest
 colour = pytest.importorskip("colour", reason="needs colour-science")
 skc = pytest.importorskip("skimage.color", reason="needs scikit-image")
 
-import geopalette as gp
+import pygeopalette as gp
 
 
 @pytest.fixture(scope="module")
@@ -200,13 +200,13 @@ def test_no_runtime_warnings_on_edge_colours(rgb):
 def _cam_reference(R, G, B, L_A, Y_b, sur):
     """colour-science CIECAM02 on the SAME XYZ and white the package uses.
 
-    rgb_to_cam02 builds XYZ from geopalette's own sRGB->XYZ matrix, which
+    rgb_to_cam02 builds XYZ from pygeopalette's own sRGB->XYZ matrix, which
     differs from colour's in the last two decimals. Feeding colour that same
     XYZ isolates the appearance model from the RGB->XYZ step; otherwise a
     correct CIECAM02 looks wrong by ~5e-3 for reasons that have nothing to do
     with it.
     """
-    from geopalette.conversions import _rgb_to_xyz, _CAM02_WHITE_D65
+    from pygeopalette.conversions import _rgb_to_xyz, _CAM02_WHITE_D65
     XYZ = np.stack(_rgb_to_xyz(R, G, B), -1) * 100.0
     return colour.XYZ_to_CIECAM02(
         XYZ, _CAM02_WHITE_D65, L_A=L_A, Y_b=Y_b,

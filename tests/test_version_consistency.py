@@ -1,10 +1,10 @@
 """The version must be one number, not three that agree by hand.
 
-`geopalette.__version__` reported 0.4.0 while `pyproject.toml` said 0.6.0.
+`pygeopalette.__version__` reported 0.4.0 while `pyproject.toml` said 0.6.0.
 Two releases were cut in between and both missed it, because the bump was
 done by editing the places someone remembered rather than by searching for
 the old number. Anyone importing the package from a source checkout and
-reporting `geopalette.__version__` in a bug report was two releases out.
+reporting `pygeopalette.__version__` in a bug report was two releases out.
 
 Copyright (C) 2025 Igor Pawelec. Licence: GPLv3.
 """
@@ -25,9 +25,9 @@ def _pyproject_version():
 
 
 def test_dunder_version_matches_pyproject():
-    import geopalette
-    assert geopalette.__version__ == _pyproject_version(), (
-        f"geopalette.__version__ is {geopalette.__version__} but "
+    import pygeopalette
+    assert pygeopalette.__version__ == _pyproject_version(), (
+        f"pygeopalette.__version__ is {pygeopalette.__version__} but "
         f"pyproject.toml says {_pyproject_version()}. Bump both."
     )
 

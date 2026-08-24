@@ -1,11 +1,11 @@
 """
-geopalette_test.py
+pygeopalette_test.py
 ~~~~~~~~~~~~~~~~~~
 Example usage: convert an RGB GeoTIFF to CIELAB and display results.
 
 Usage::
 
-    python geopalette_test.py
+    python pygeopalette_test.py
 """
 
 import os
@@ -22,7 +22,7 @@ SPACE = "lab"
 def main():
     import rasterio
     import matplotlib.pyplot as plt
-    from geopalette import convertbands, available_spaces
+    from pygeopalette import convertbands, available_spaces
 
     print(f"Available spaces: {available_spaces()}")
 
