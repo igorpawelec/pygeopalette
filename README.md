@@ -1,6 +1,6 @@
 # pygeopalette
 
-<img src="https://raw.githubusercontent.com/igorpawelec/pygeopalette/main/www/geopalette_logo.png" align="right" width="200"/>
+<img src="https://raw.githubusercontent.com/igorpawelec/pygeopalette/main/www/pygeopalette.png" align="right" width="200"/>
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
