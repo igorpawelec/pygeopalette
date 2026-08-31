@@ -119,10 +119,16 @@ def convert_raster(
         else:
             windows = [Window(0, 0, src.width, src.height)]
 
+        # driver is explicit, because meta came from the input and carries the
+        # input's driver with it. The paths below end in .tif, so inheriting
+        # anything else writes the wrong format under a .tif name -- and for a
+        # VRT input it fails outright ("Writing through VRTSourcedRasterBand is
+        # not supported"), which is how this surfaced.
         meta_out = meta.copy()
-        meta_out.update(count=n_out, dtype="float32", nodata=nodata)
+        meta_out.update(driver="GTiff", count=n_out, dtype="float32",
+                        nodata=nodata)
         meta_s = meta.copy()
-        meta_s.update(count=1, dtype="float32", nodata=nodata)
+        meta_s.update(driver="GTiff", count=1, dtype="float32", nodata=nodata)
 
         multi_path = output_dir / f"{base}_{space}.tif"
         t0 = time.time()

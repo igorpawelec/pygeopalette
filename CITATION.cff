@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "pygeopalette — Color space conversions for geospatial raster data"
-version: "0.7.0"
-date-released: "2026-07-22"
+version: "0.7.1"
+date-released: "2026-08-30"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/igorpawelec/pygeopalette"
 authors:
