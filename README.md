@@ -2,6 +2,8 @@
 
 <img src="https://raw.githubusercontent.com/igorpawelec/pygeopalette/main/www/pygeopalette.png" align="right" width="200"/>
 
+[![tests](https://github.com/igorpawelec/pygeopalette/actions/workflows/tests.yml/badge.svg)](https://github.com/igorpawelec/pygeopalette/actions/workflows/tests.yml)
+[![Release](https://img.shields.io/github/v/release/igorpawelec/pygeopalette)](https://github.com/igorpawelec/pygeopalette/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 **Color space conversions for geospatial raster data.**
