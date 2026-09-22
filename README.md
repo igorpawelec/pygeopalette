@@ -6,23 +6,96 @@
 [![Release](https://img.shields.io/github/v/release/igorpawelec/pygeopalette)](https://github.com/igorpawelec/pygeopalette/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-**Color space conversions for geospatial raster data.**
+**Colour space conversions for geospatial raster data.**
 
-A pure-NumPy Python package for converting RGB raster bands into 15 color spaces commonly used in remote sensing, image segmentation, and forestry applications. Designed for 2-D arrays (GeoTIFF bands) — fully vectorized, no pixel-level loops.
+Three RGB bands go in; the components of any of 15 colour spaces come out, as arrays or as a GeoTIFF. Pure NumPy, vectorised over whole bands, no pixel loops, and `rasterio` only for the file I/O.
 
-## Background
+> **R users:** the same conversions are in [rgeopalette](https://github.com/igorpawelec/rgeopalette). The two are separate repositories because their tooling and idioms do not mix. They agree to better than 1.7e-6 of each component's range — but, unlike the adaptels twins, they are **not bit-identical** and cannot be: pygeopalette stores single precision, R has no single-precision type.
 
-Color space transformations are fundamental to object-based image analysis (OBIA) and superpixel segmentation in remote sensing. This package implements standard CIE colorimetry with proper sRGB linearization (IEC 61966-2-1) and D65 illuminant, ensuring mathematically correct conversions suitable for scientific applications.
+## The problem it solves
 
-Key references for the implemented color spaces:
+The three bands of an orthophoto are the camera's axes, not the analyst's. Red, green and blue are correlated with each other and with brightness, so a bleached crown in the sun and a healthy one in the shade can differ more along every band than a dead tree differs from a living one. The questions a forester or an image analyst asks — how bright, how saturated, how far towards red — live on other axes, and CIE colorimetry has been describing those axes since 1976.
 
-- **CIELAB, CIELUV, xyY:** CIE 15:2004, *Colorimetry*. Commission Internationale de l'Éclairage.
-- **DIN99:** DIN 6176:2003, *Farbmetrische Bestimmung von Farbabständen bei Körperfarben nach der DIN99-Formel*.
-- **Oklab:** Ottosson, B. (2020). *A perceptual color space for image processing*. https://bottosson.github.io/posts/oklab/
-- **Jzazbz / JzCzHz:** Safdar, M., Cui, G., Kim, Y.J., & Luo, M.R. (2017). Perceptually uniform color space for image signals including high dynamic range and wide gamut. *Optics Express*, 25(13), 15131–15151. https://doi.org/10.1364/OE.25.015131
-- **sRGB linearization:** IEC 61966-2-1:1999. *Multimedia systems and equipment — Colour measurement and management*.
+pygeopalette moves raster bands onto them. It implements the standard chain — sRGB linearisation (IEC 61966-2-1), CIE XYZ under D65, then CIELAB, CIELUV, their cylindrical LCH forms, DIN99, Oklab, Jzazbz, CIECAM02 and the video and hue-based spaces — with the numerical care a scientific application needs, and checks every space against an independent implementation.
 
-## Supported color spaces
+<img src="https://raw.githubusercontent.com/igorpawelec/pygeopalette/main/www/spaces.png" alt="A 30 by 30 m window of a spruce plot orthophoto in RGB and in seven colour spaces, each space's three components shown as the red, green and blue channels" width="100%"/>
+
+*A 30 × 30 m window of a 0.25 m orthophoto of a spruce stand (`test_data/SNP_21_2020_1.tif`) in RGB and in seven of the fifteen spaces, each space's three components shown as the red, green and blue channels and stretched for display. In the opponent spaces — CIELAB, Oklab, CIELUV, Jzazbz — the dead crowns turn magenta, because their `a*` is positive and the living canopy's is negative; the hue-based spaces wrap around the colour circle wherever a pixel is nearly neutral, which is the caveat below made visible. Made by `www/figures.py`.*
+
+## Why it matters, measured
+
+The plot has 36 standing dead trees digitised as points. Take every pixel within 1 m of a point as dead and every pixel further than 2 m from all of them as living — 1,759 against 118,627 — and ask of each axis how well it tells the two apart, as the probability that a random dead pixel outranks a random living one (an AUC: 0.5 is chance, 1 is perfect). Fifty-one axes: the three RGB bands and all 48 components of the fifteen spaces.
+
+<img src="https://raw.githubusercontent.com/igorpawelec/pygeopalette/main/www/separation.png" alt="CIELAB a* over the plot with the dead-tree points, the dead trees red on a blue canopy; the densities of dead and living pixels along a*, AUC 0.97; and along the blue band, the best RGB band, AUC 0.93" width="100%"/>
+
+*Left: CIELAB `a*` over the plot, red for positive, blue for negative, with the 36 points. Middle: dead and living pixels along `a*` — AUC 0.97, the best of the 51 axes (Oklab `a` and DIN99 `a` tie with it to three decimals). Right: the same along the blue band, the best that RGB can do — AUC 0.93, with the dead trees spread across the whole upper half of the living distribution. The hue axes score 0.94 but are undefined on neutral pixels; the green–red opponent axis is the one that carries the difference, which is why the dead-tree recipe in pygeoadaptels' `grow_seeds` weights `a*` by 2.5.*
+
+The practical reading: convert before you segment or classify, and choose the axis for the question. Brightness lives on `L*`, the dead-versus-living difference on `a*`, and a colour difference with a meaning — a ΔE — only exists in CIELAB, which is what gives a tolerance like `grow_seeds`' `max_cost` its unit.
+
+## When to use it, and when not
+
+Use pygeopalette to prepare an RGB orthophoto for object-based analysis — adaptels, a classifier over segment features, a seeded growing with a ΔE tolerance — or to read an appearance attribute off it. `rgb_to_cam02` runs the full CIECAM02 model with viewing conditions when the numbers have to be defensible; `rgb_to_jch` is the fast stand-in when they do not.
+
+It is not a colour-management tool: no ICC profiles, and the input is taken as sRGB under D65, which is what an 8-bit aerial orthophoto is for practical purposes. It has nothing to say about a near-infrared band — there is no colour space for one; use an index.
+
+### The package family
+
+pygeopalette is the first step of a longer chain; the other steps are separate packages, each with a Python and an R twin.
+
+| Step | Python | R |
+|---|---|---|
+| Colour-space conversion of orthophotos | **pygeopalette** | [rgeopalette](https://github.com/igorpawelec/rgeopalette) |
+| Adaptive superpixels and seeded growing on orthophotos | [pygeoadaptels](https://github.com/igorpawelec/pygeoadaptels) | [rgeoadaptels](https://github.com/igorpawelec/rgeoadaptels) |
+| Crowns from a canopy height model | [pycacumen](https://github.com/igorpawelec/pycacumen) | [rcacumen](https://github.com/igorpawelec/rcacumen) |
+| Standing dead trees on orthophotos | [pygeosnag](https://github.com/igorpawelec/pygeosnag) | — |
+| The same, inside QGIS | [qgis-geoadaptels-geopalette](https://github.com/igorpawelec/qgis-geoadaptels-geopalette), [qgis-geosnag](https://github.com/igorpawelec/qgis-geosnag) | |
+| Polish national geodata (GUGiK, BDL) | — | [rgeopl](https://github.com/igorpawelec/rgeopl) |
+
+## Installation
+
+```bash
+conda install -c conda-forge numpy rasterio
+pip install --no-deps git+https://github.com/igorpawelec/pygeopalette.git
+```
+
+Rasterio is only needed for GeoTIFF I/O; every conversion works on plain NumPy arrays, so `pip install numpy` and the package is the minimal install. The `--no-deps` flag keeps pip from overwriting conda's GDAL/PROJ stack.
+
+## Quick start
+
+```python
+import numpy as np
+from pygeopalette import convertbands, available_spaces
+
+print(available_spaces())
+# ['cam02', 'dlab', 'hsi', 'hsl', 'hsv', 'jch', 'jzazbz', 'jzczhz', 'lab', 'lchab', 'lchuv', 'luv', 'oklab', 'xyY', 'ycbcr']
+
+comps, names = convertbands(R, G, B, "lab")     # uint8 bands in; a list of float32 arrays out
+print(names)                                    # ['L', 'a', 'b']
+```
+
+```python
+from pygeopalette import rgb_to_lab, rgb_to_oklab, rgb_to_cam02, lab_to_rgb
+
+L, a, b = rgb_to_lab(R, G, B)
+J, C, h = rgb_to_cam02(R, G, B, L_A=64, Y_b=20, surround="average")
+R2, G2, B2 = lab_to_rgb(L, a, b)                # inverse, sRGB in [0, 1]
+```
+
+```python
+from pygeopalette.io_utils import convert_raster
+
+convert_raster("ortho_rgb.tif", "results/", "lab", save_multiband=True, save_singlebands=True)
+```
+
+```bash
+pygeopalette -i ortho_rgb.tif -o results/ -s lab
+pygeopalette -i ortho_rgb.tif -o results/ -s oklab --single-bands
+python -m pygeopalette --help
+```
+
+## Reference
+
+### Supported colour spaces
 
 | Space | Components | Category |
 |-------|-----------|----------|
@@ -42,108 +115,44 @@ Key references for the implemented color spaces:
 | **Jzazbz** | Jz, az, bz | HDR perceptual |
 | **JzCzHz** | Jz, Cz, hz (0–360°) | HDR cylindrical |
 
-Inverse conversions: **CIELAB → RGB**, **Oklab → RGB**, **HSV → RGB**, **HSL → RGB**.
+Inverse conversions: **CIELAB → RGB**, **Oklab → RGB**, **HSV → RGB**, **HSL → RGB**. The forward functions take uint8 0–255 and the inverses return float32 0–1, so they do not compose directly: `(R2 * 255).round().astype(np.uint8)`.
 
-## Installation
+### Three things worth knowing before stacking bands
 
-**Recommended (conda + pip):**
+- **Scales differ between spaces.** Hue is 0–360, HSL/HSV saturation and value 0–1, HSI saturation 0–100 per cent and intensity 0–255, `L*` 0–100 with `a*`/`b*` unbounded, `jch` hue 0–324 (an HSV hue scaled by 0.9), `ycbcr` studio swing with Y 16–235. Normalise before you stack.
+- **Hue is undefined on the neutral axis.** `Hab`, `Huv`, `hz` and CIECAM02 `h` come from `atan2` over an opponent pair that is zero for a neutral pixel, so the angle is floating-point noise there — grey, white, black, deep shadow and still water are all neutral, which is ordinary in imagery. Do not segment or classify on a hue band without masking low-chroma pixels first. The HSL/HSV/HSI/JCH hues are forced to 0 for achromatic pixels instead.
+- **`cam02` is real CIECAM02; `jch` is not.** `rgb_to_cam02` runs the full model — CAT02 adaptation, surround, background — and takes viewing conditions because CIECAM02 models an observer: `L_A` the adapting luminance (~318 for a sunlit scene, ~64 for a screen), `Y_b` the background (20 = grey world), `surround` one of `average` / `dim` / `dark`. They move the result — J shifts about 8 units between average and dark — so report them. `jch` has none of that: it tracks CIECAM02 at r ≈ 0.98 on J and 0.89 on C, but its hue can be off by 70°.
 
-```bash
-# 1. Install native dependencies via conda
-conda install -c conda-forge numpy rasterio
+<details>
+<summary><b>Accuracy</b></summary>
 
-# 2. Install pygeopalette
-pip install --no-deps .               # from cloned repo
-# or
-pip install --no-deps git+https://github.com/igorpawelec/pygeopalette.git
-```
-
-**Minimal (NumPy only, no GeoTIFF I/O):**
+Every conversion is checked against an independent implementation (`colour-science`, `scikit-image`) in `tests/test_reference.py`:
 
 ```bash
-pip install numpy
-pip install --no-deps .
+pip install -e ".[validate]"
+pytest tests/test_reference.py -v
 ```
 
-> **Note:** The `--no-deps` flag prevents pip from overwriting conda packages. Rasterio is only needed for GeoTIFF I/O — all conversion functions work with plain NumPy arrays.
+All 15 spaces match their reference to float32 precision. Where a tolerance looks loose it is the module's own float32 storage: the PQ curve inside Jzazbz carries an exponent of 134, which turns a float32 input error of ~1e-7 into ~1e-5 on the output.
 
-## Quick start
+`ycbcr` is BT.601 studio swing, not full range: black is Y = 16, white is Y = 235. Rescale with `(Y - 16) * 255 / 219` if you need 0–255.
 
-### Python API
+</details>
 
-```python
-import numpy as np
-from pygeopalette import convertbands, available_spaces
-
-# Check available spaces
-print(available_spaces())
-# ['dlab', 'hsi', 'hsl', 'hsv', 'jch', 'jzazbz', 'jzczhz', 'lab', ...]
-
-# Convert synthetic data
-R = np.random.randint(0, 256, (100, 100), dtype=np.uint8)
-G = np.random.randint(0, 256, (100, 100), dtype=np.uint8)
-B = np.random.randint(0, 256, (100, 100), dtype=np.uint8)
-
-comps, names = convertbands(R, G, B, "lab")
-print(names)  # ['L', 'a', 'b']
-```
-
-### With GeoTIFF (rasterio)
-
-```python
-from pygeopalette.io_utils import convert_raster
-
-convert_raster(
-    "ortho_rgb.tif",
-    "results/",
-    "lab",
-    save_multiband=True,
-    save_singlebands=True,
-)
-# Use quiet=True to suppress progress messages
-```
-
-### Command line
-
-```bash
-pygeopalette -i ortho_rgb.tif -o results/ -s lab
-pygeopalette -i ortho_rgb.tif -o results/ -s oklab --single-bands
-```
-
-### As Python module
-
-```bash
-python -m pygeopalette -i ortho_rgb.tif -o results/ -s lab
-```
-
-### Individual functions
-
-```python
-from pygeopalette import rgb_to_lab, rgb_to_oklab, rgb_to_jzazbz
-from pygeopalette import lab_to_rgb, oklab_to_rgb, hsv_to_rgb, hsl_to_rgb
-
-L, a, b = rgb_to_lab(R, G, B)
-R2, G2, B2 = lab_to_rgb(L, a, b)  # inverse (sRGB [0,1])
-
-from pygeopalette import rgb_to_hsv
-H, S, V = rgb_to_hsv(R, G, B)
-R2, G2, B2 = hsv_to_rgb(H, S, V)  # inverse (sRGB [0,1])
-```
-
-## Repository structure
+<details>
+<summary><b>Repository layout, requirements, testing</b></summary>
 
 ```
 pygeopalette/
-├── pygeopalette/           # Package source
+├── pygeopalette/         # Package source
 │   ├── __init__.py       # Public API
 │   ├── __main__.py       # CLI entry point
 │   ├── conversions.py    # All conversion functions
 │   └── io_utils.py       # GeoTIFF read/write helpers
-├── tests/                # Pytest suite
-├── test_data/            # Sample rasters
-├── www/                  # Logo & comparison images
+├── tests/                # Pytest suite, incl. the reference check
+├── test_data/            # The sample plot and its dead-tree points
+├── www/                  # Logo and the README figures, with the script that makes them
 ├── pyproject.toml
-├── requirements.txt
 ├── environment.yaml
 ├── CITATION.cff
 ├── CHANGELOG.md
@@ -151,18 +160,17 @@ pygeopalette/
 └── LICENSE
 ```
 
-## Testing
+- Python ≥ 3.9, NumPy ≥ 1.21
+- Rasterio ≥ 1.3 *(optional, for GeoTIFF I/O)*
 
 ```bash
 pip install pytest
 pytest tests/ -v
 ```
 
-## Requirements
+The README figures are remade with `python www/figures.py` from the files in `test_data/`.
 
-- Python ≥ 3.9
-- NumPy ≥ 1.21
-- Rasterio ≥ 1.3 *(optional, for GeoTIFF I/O)*
+</details>
 
 ## Citation
 
@@ -170,7 +178,7 @@ If you use this software in your research, please cite:
 
 1. **This implementation:**
 
-   > Pawelec, I. (2025). pygeopalette — Color space conversions for geospatial raster data [Software]. https://github.com/igorpawelec/pygeopalette
+   > Pawelec, I. (2026). pygeopalette — Color space conversions for geospatial raster data [Software]. https://github.com/igorpawelec/pygeopalette
 
 2. **For CIELAB/CIELUV conversions:**
 
@@ -184,7 +192,7 @@ If you use this software in your research, please cite:
 
    > Safdar, M., Cui, G., Kim, Y.J., & Luo, M.R. (2017). Perceptually uniform color space for image signals including high dynamic range and wide gamut. *Optics Express*, 25(13), 15131–15151.
 
-See also [CITATION.cff](CITATION.cff).
+DIN99 follows DIN 6176:2003 and the sRGB linearisation IEC 61966-2-1:1999. See also [CITATION.cff](CITATION.cff).
 
 ## License
 
@@ -193,54 +201,3 @@ GNU General Public License v3.0 — see [LICENSE](LICENSE).
 ## Contributing
 
 Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Accuracy
-
-Every conversion is checked against an independent implementation
-(`colour-science`, `scikit-image`) in `tests/test_reference.py`:
-
-```bash
-pip install -e ".[validate]"
-pytest tests/test_reference.py -v
-```
-
-All 15 spaces match their reference to float32 precision. Where a tolerance
-looks loose it is the module's own float32 storage: the PQ curve inside
-Jzazbz carries an exponent of 134, which turns a float32 input error of
-~1e-7 into ~1e-5 on the output.
-
-Two spaces need a note:
-
-- **`cam02` is real CIECAM02**; **`jch` is not.** Use `rgb_to_cam02` when you
-  need appearance values you can defend — it runs the full model (CAT02
-  adaptation, surround, background) and matches `colour.XYZ_to_CIECAM02` to
-  float32 precision. It takes viewing-condition arguments because CIECAM02
-  models an observer, not a fixed function of RGB:
-
-  ```python
-  from pygeopalette import rgb_to_cam02
-  J, C, h = rgb_to_cam02(R, G, B, L_A=64, Y_b=20, surround="average")
-  ```
-
-  `L_A` is the adapting luminance (~1/5 of scene white; ~318 for a sunlit
-  outdoor scene, ~64 for a screen), `Y_b` the background (20 = grey world),
-  `surround` one of `average` / `dim` / `dark`. These move the result — J
-  shifts about 8 units between average and dark — so report them. `jch` stays
-  as a fast stand-in when the exact numbers do not matter.
-
-- **`ycbcr` is BT.601 studio swing**, not full range: black is Y=16, white is
-  Y=235. Rescale with `(Y - 16) * 255 / 219` if you need 0-255.
-- **`jch` is not CIECAM02.** It is a cheap stand-in with no chromatic
-  adaptation, surround or background term. It tracks real CIECAM02 at r≈0.98
-  on J and r≈0.89 on C, but hue can be off by 70°, and its H spans 0-324°.
-  For CIECAM02 proper, use `colour.XYZ_to_CIECAM02`.
-
-Note also that the forward functions take uint8 0-255 while the inverse
-functions return float32 0-1, so they do not compose directly:
-
-```python
-L, a, b = rgb_to_lab(R, G, B)      # uint8 in
-R2, G2, B2 = lab_to_rgb(L, a, b)   # float [0,1] out
-R2 = (R2 * 255).round().astype(np.uint8)
-```
-
